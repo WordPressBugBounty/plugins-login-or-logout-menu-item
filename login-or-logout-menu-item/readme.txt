@@ -1,9 +1,11 @@
 === Login or Logout Menu Item ===
 Contributors: cartpauj
-Tags: login, log in, logout, log out, menu, menu item, menus, dynamic
-Requires at least: 5.0
-Tested up to: 6.4
-Stable tag: 1.2.3
+Tags: login, logout, menu, menu item, dynamic
+Requires at least: 6.0
+Tested up to: 6.8
+Stable tag: 1.3.0
+License: GPLv3
+License URI: https://www.gnu.org/licenses/gpl-3.0.txt
 
 Add a dynamic "Login" or "Logout" menu item to any WordPress Menu and control redirects.
 
@@ -37,6 +39,18 @@ You can now drag the menu item wherever you'd like it to appear in your menu. Th
 
 Now save your menu. That's it!
 
+== BLOCK EDITOR (NAVIGATION BLOCK) ==
+
+If you're using the block editor's Navigation block:
+
+1. Add or edit a Navigation block on your page or in the Site Editor
+2. Click the (+) to add a new link
+3. In the search field, type "login" or "logout"
+4. Select "Login|Logout" from the suggestions
+5. The link will automatically show "Login" to logged-out users and "Logout" to logged-in users
+
+You can also manually type `#lolmiloginout#` as the URL if you prefer.
+
 == Troubleshooting ==
 
 **After logging in, menu still shows "Login" or Vice-Versa** - This is most commonly caused by caching. If you're using a caching solution such as Cloudflare, WPRocket, or others, be sure that caching is disabled for logged in users, and disable browser caching options as well.
@@ -57,6 +71,10 @@ Now save your menu. That's it!
 2. Login or Logout Menu Item - Settings
 
 == Changelog ==
+
+= 1.3.0 =
+* Added support for the block editor Navigation block
+* Search "login" or "logout" in the Navigation block link picker to add the dynamic link
 
 = 1.2.3 =
 * Small tweaks to help avoid hosting blocks

@@ -2,7 +2,7 @@
 /*
 Plugin Name: Login or Logout Menu Item
 Description: Adds a new Menu item which dynamically changes from login to logout depending on the current users logged in status.
-Version: 1.2.3
+Version: 1.3.0
 Plugin URI: https://caseproof.com/
 Author: cartpauj
 Text Domain: lolmi
@@ -185,6 +185,42 @@ function lolmi_setup_menus() {
 }
 add_action('admin_menu', 'lolmi_setup_menus');
 
+/**
+ * Add Login/Logout suggestion to REST API search results.
+ * This works with the Navigation block's link picker.
+ */
+function lolmi_rest_search_results( $response, $handler, $request ) {
+  // Only modify search endpoint
+  if ( strpos( $request->get_route(), '/wp/v2/search' ) === false ) {
+    return $response;
+  }
+
+  $search = $request->get_param( 'search' );
+  if ( empty( $search ) ) {
+    return $response;
+  }
+
+  $search_lower = strtolower( $search );
+
+  // Add our suggestion if searching for login/logout
+  if ( strpos( $search_lower, 'login' ) !== false || strpos( $search_lower, 'logout' ) !== false ) {
+    $data = $response->get_data();
+
+    // Add our custom suggestion at the beginning
+    array_unshift( $data, array(
+      'id'      => 'lolmi-loginout',
+      'title'   => 'Login|Logout',
+      'url'     => '#lolmiloginout#',
+      'type'    => 'URL',
+    ) );
+
+    $response->set_data( $data );
+  }
+
+  return $response;
+}
+add_filter( 'rest_request_after_callbacks', 'lolmi_rest_search_results', 10, 3 );
+
 function lolmi_save_settings() {
   if(!isset($_GET['page']) || $_GET['page'] != 'login-logout-settings') { return; }
 
@@ -204,3 +240,55 @@ function lolmi_save_settings() {
   }
 }
 add_action('admin_init', 'lolmi_save_settings');
+
+/**
+ * Handle login/logout placeholder URLs in Navigation blocks.
+ * The wp_setup_nav_menu_item filter only works for classic menus.
+ * This filter modifies the rendered Navigation block output.
+ */
+function lolmi_render_navigation_block( $block_content, $block ) {
+  // Only process navigation blocks that contain our placeholder
+  if ( strpos( $block_content, '#lolmi' ) === false ) {
+    return $block_content;
+  }
+
+  // Get settings (same as lolmi_setup_nav_menu_item)
+  $login_url = get_option( 'lolmi_login_page_url', wp_login_url() );
+  $logout_redirect = get_option( 'lolmi_logout_redirect_url', home_url() );
+
+  // Handle #lolmiloginout# - need to replace both URL and label
+  if ( strpos( $block_content, '#lolmiloginout#' ) !== false ) {
+    $new_url = is_user_logged_in() ? wp_logout_url( $logout_redirect ) : $login_url;
+
+    // Use regex to find and replace the link with label transformation
+    $block_content = preg_replace_callback(
+      '/<a([^>]*?)href=["\']#lolmiloginout#["\']([^>]*?)>(<span[^>]*?>)?([^<]+)(<\/span>)?<\/a>/i',
+      function( $matches ) use ( $new_url ) {
+        $before_href = $matches[1];
+        $after_href = $matches[2];
+        $span_open = $matches[3] ?? '';
+        $label = $matches[4];
+        $span_close = $matches[5] ?? '';
+
+        // Reuse existing function for label transformation
+        $new_label = lolmi_loginout_title( $label );
+
+        return '<a' . $before_href . 'href="' . esc_url( $new_url ) . '"' . $after_href . '>' . $span_open . $new_label . $span_close . '</a>';
+      },
+      $block_content
+    );
+  }
+
+  // Handle #lolmilogin# - just URL replacement
+  if ( strpos( $block_content, '#lolmilogin#' ) !== false ) {
+    $block_content = str_replace( '#lolmilogin#', esc_url( $login_url ), $block_content );
+  }
+
+  // Handle #lolmilogout# - just URL replacement
+  if ( strpos( $block_content, '#lolmilogout#' ) !== false ) {
+    $block_content = str_replace( '#lolmilogout#', esc_url( wp_logout_url( $logout_redirect ) ), $block_content );
+  }
+
+  return $block_content;
+}
+add_filter( 'render_block_core/navigation', 'lolmi_render_navigation_block', 10, 2 );
